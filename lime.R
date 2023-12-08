@@ -17,8 +17,11 @@ if (!requireNamespace("lime", quietly = TRUE)) {
 library(mlr3oml)
 library(mlr3)
 library(h2o)
+library(gbm)
 library(caret)
 library(lime)
+library(plyr)
+library(randomForest)
 
 ############
 # Data fetching
@@ -30,21 +33,42 @@ odata <- odt(id = 4534)
 df <- odata$data
 
 ############
+# Preprocessing
+############
+df <- na.omit(df)
+# Encoding target variable
+df$Result <- mapvalues(df$Result , from = c(-1, 1), to = c(0, 1), warn_missing = TRUE)
+
+############
 # Data visualization
 ############
 
 ############
 # Train/test split
 ############
-df <- na.omit(df)
 set.seed(1)
-train <- caret::createDataPartition(df$Class, p = 0.70, list = FALSE)
+train <- caret::createDataPartition(df$Result, p = 0.70, list = FALSE)
 train.data <- df[train,]
 test.data <- df[-train,]
 
 ############
 # Model training/testing
 ############
+# Logistic Regression
+lg <- glm(Result ~ ., data = train.data, family = binomial)
+pred <- predict(lg, test.data)
+predict_reg <- factor(ifelse(pred >0.5, 1, 0))
+#table(test.data$Result, predict_reg)
+print("Logistic Regression")
+confusionMatrix(predict_reg, test.data$Result)
+
+# Random Forests
+rf <- randomForest(Result~., data=train.data, proximity=TRUE)
+predict_rf <- predict(rf, test.data)
+#table(test.data$Result, predict_rf)
+
+print("Random Forest")
+confusionMatrix(predict_rf, test.data$Result)
 
 
 ############
