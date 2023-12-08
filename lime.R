@@ -14,6 +14,15 @@ if (!requireNamespace("lime", quietly = TRUE)) {
   install.packages("lime")
 }
 
+if (!requireNamespace("randomForest", quietly = TRUE)) {
+  install.packages("randomForest")
+}
+
+if (!requireNamespace("doParallel", quietly = TRUE)) {
+  install.packages("doParallel")
+}
+
+
 library(mlr3oml)
 library(mlr3)
 library(h2o)
@@ -22,6 +31,7 @@ library(caret)
 library(lime)
 library(plyr)
 library(randomForest)
+library(doParallel)
 
 ############
 # Data fetching
@@ -36,7 +46,7 @@ df <- odata$data
 # Preprocessing
 ############
 df <- na.omit(df)
-# Encoding target variable
+# Remapping target values
 df$Result <- mapvalues(df$Result , from = c(-1, 1), to = c(0, 1), warn_missing = TRUE)
 
 ############
@@ -54,19 +64,26 @@ test.data <- df[-train,]
 ############
 # Model training/testing
 ############
+
 # Logistic Regression
-lg <- glm(Result ~ ., data = train.data, family = binomial)
-pred <- predict(lg, test.data)
-predict_reg <- factor(ifelse(pred >0.5, 1, 0))
-#table(test.data$Result, predict_reg)
-print("Logistic Regression")
-confusionMatrix(predict_reg, test.data$Result)
+# lg <- glm(Result ~ ., data = train.data, family = binomial)
+# pred <- predict(lg, test.data)
+# predict_reg <- factor(ifelse(pred >0.5, 1, 0))
+# print("Logistic Regression")
+# confusionMatrix(predict_reg, test.data$Result)
 
 # Random Forests
-rf <- randomForest(Result~., data=train.data, proximity=TRUE)
-predict_rf <- predict(rf, test.data)
-#table(test.data$Result, predict_rf)
-
+cl <- makePSOCKcluster(6)
+registerDoParallel(cl)
+ctrl <- trainControl(method = "cv",number = 10,
+                     allowParallel = TRUE, 
+                     verboseIter = FALSE)
+rf.cv <- train(Result ~ ., data = train.data,
+               method = "rf",
+               trControl = ctrl,                     
+               tuneLenght = 5)
+stopCluster(cl)
+predict_rf <- predict(rf.cv, test.data)
 print("Random Forest")
 confusionMatrix(predict_rf, test.data$Result)
 
@@ -74,4 +91,20 @@ confusionMatrix(predict_rf, test.data$Result)
 ############
 # LIME
 ############
+explainer <- lime(train.data, model = rf.cv)
+explanation <- explain(test.data[1:5, ], explainer, n_labels = 1, n_features = 5)
+plot_features(explanation)
 
+# Tune LIME algorithm
+# explanation_tuned <- explain(
+#   x = test.data[15:20, ],
+#   explainer = explainer,
+#   model = rf.cv,
+#   n_permutations = 5000,
+#   kernel_distance = "manhattan",  # Use kernel_distance instead of dist_fun
+#   kernel_width = 3,
+#   n_features = 10,
+#   feature_select = "lasso_path",
+#   labels = "Yes"
+# )
+# plot_features(explanation_tuned)
