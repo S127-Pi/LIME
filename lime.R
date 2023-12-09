@@ -38,7 +38,9 @@ library(doParallel)
 ############
 
 # Get dataset
-odata <- odt(id = 4534)
+# id = 151 electricity
+id = 4534 #phishing
+odata <- odt(id = id)
 # Access the actual data
 df <- odata$data
 
@@ -73,7 +75,7 @@ test.data <- df[-train,]
 # confusionMatrix(predict_reg, test.data$Result)
 
 # Random Forests
-cl <- makePSOCKcluster(6)
+cl <- makePSOCKcluster(7)
 registerDoParallel(cl)
 ctrl <- trainControl(method = "cv",number = 10,
                      allowParallel = TRUE, 
@@ -92,19 +94,17 @@ confusionMatrix(predict_rf, test.data$Result)
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
-explanation <- explain(test.data[1:5, ], explainer, n_labels = 1, n_features = 5)
+explanation <- explain(test.data[20:25, ], explainer, n_labels = 1, n_features = 10)
 plot_features(explanation)
 
 # Tune LIME algorithm
-# explanation_tuned <- explain(
-#   x = test.data[15:20, ],
-#   explainer = explainer,
-#   model = rf.cv,
-#   n_permutations = 5000,
-#   kernel_distance = "manhattan",  # Use kernel_distance instead of dist_fun
-#   kernel_width = 3,
-#   n_features = 10,
-#   feature_select = "lasso_path",
-#   labels = "Yes"
-# )
-# plot_features(explanation_tuned)
+explanation_tuned <- explain(
+  x = test.data[20:25,],
+  explainer = explainer,
+  n_permutations = 5000,
+  kernel_distance = "euclidean",
+  kernel_width = 3,
+  n_features = 10,
+  n_labels = 1,
+)
+plot_features(explanation_tuned)
