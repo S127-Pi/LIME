@@ -32,6 +32,8 @@ library(lime)
 library(plyr)
 library(randomForest)
 library(doParallel)
+library(rpart)
+library(iml)
 
 ############
 # Data fetching
@@ -77,7 +79,7 @@ test.data <- df[-train,]
 # Random Forests
 cl <- makePSOCKcluster(7)
 registerDoParallel(cl)
-ctrl <- trainControl(method = "cv",number = 10,
+ctrl <- trainControl(method = "cv",number = 3,
                      allowParallel = TRUE, 
                      verboseIter = FALSE)
 rf.cv <- train(Result ~ ., data = train.data,
@@ -108,3 +110,22 @@ explanation_tuned <- explain(
   labels = "-1",
 )
 plot_features(explanation_tuned)
+
+# Shapley() also works with multiclass classification
+rf <- rpart(Result ~ ., data = train.data)
+X <- train.data[-which(names(train.data) == "Result")]
+mod <- Predictor$new(rf, data = X, type = "prob")
+# Then we explain the first instance of the dataset with the Shapley() method:
+shapley <- Shapley$new(mod, x.interest = X[1, ])
+shapley$results
+plot(shapley)
+# You can also focus on one class
+mod <- Predictor$new(rf, data = X, type = "prob", class = "setosa")
+shapley <- Shapley$new(mod, x.interest = X[1, ])
+shapley$results
+plot(shapley)
+## End(Not run)
+
+lg <- glm(Result ~ ., data = train.data, family = binomial)
+pred <- predict(lg, test.data)
+          
