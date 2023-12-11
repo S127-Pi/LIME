@@ -49,7 +49,7 @@ df <- odata$data
 ############
 df <- na.omit(df)
 # Remapping target values
-df$Result <- mapvalues(df$Result , from = c(-1, 1), to = c(0, 1), warn_missing = TRUE)
+#df$Result <- mapvalues(df$Result , from = c(-1, 1), to = c(0, 1), warn_missing = TRUE)
 
 ############
 # Data visualization
@@ -94,7 +94,7 @@ confusionMatrix(predict_rf, test.data$Result)
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
-explanation <- explain(test.data[20:25, ], explainer, labels = "0", n_features = 10)
+explanation <- explain(test.data[20:25, ], explainer, labels = "-1", n_features = 10)
 plot_features(explanation)
 
 # Tune LIME algorithm
