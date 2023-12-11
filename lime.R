@@ -94,17 +94,17 @@ confusionMatrix(predict_rf, test.data$Result)
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
-explanation <- explain(test.data[20:25, ], explainer, n_labels = 1, n_features = 10)
+explanation <- explain(test.data[20:25, ], explainer, labels = "0", n_features = 10)
 plot_features(explanation)
 
 # Tune LIME algorithm
 explanation_tuned <- explain(
   x = test.data[20:25,],
   explainer = explainer,
-  n_permutations = 5000,
-  kernel_distance = "euclidean",
+  n_permutations = 500,
+  kernel_distance = "manhatten",
   kernel_width = 3,
   n_features = 10,
-  n_labels = 1,
+  labels = "0",
 )
 plot_features(explanation_tuned)
