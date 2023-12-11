@@ -32,7 +32,6 @@ library(lime)
 library(plyr)
 library(randomForest)
 library(doParallel)
-library(tidyverse)
 
 ############
 # Data fetching
@@ -45,34 +44,12 @@ odata <- odt(id = id)
 # Access the actual data
 df <- odata$data
 
-
 ############
 # Preprocessing
 ############
-df <- read.csv("IBM.csv")
-df <- df %>% 
-  mutate(Education = as.factor(case_when(Education == 1 ~ "Below College",
-                                         Education == 2 ~ "College",
-                                         Education == 3 ~ "Bachelor",
-                                         Education == 4 ~ "Master",
-                                         TRUE ~ "Doctor")),
-         Age = as.factor(case_when(Age <= 25 ~ "Young",
-                                  Age <= 54 ~ "Middle Aged",
-                                   TRUE ~ "Senior")),
-         BusinessTravel = as.factor(BusinessTravel),
-         EducationField = as.factor(EducationField),
-         Gender = as.factor(Gender),
-         JobRole = as.factor(JobRole),
-         MaritalStatus = as.factor(MaritalStatus),
-         MonthlyIncome = as.factor(if_else(MonthlyIncome < median(MonthlyIncome), "Below Average", "Above Average")),
-         JobLevel = as.factor(JobLevel),
-         OverTime = as.factor(OverTime),
-         Over18 = as.factor(Over18),
-         Department = as.factor(Department),
-         StockOptionLevel = as.factor(StockOptionLevel),
-         Attrition = as.factor(case_when(Attrition == "No" ~ 0, Attrition == "Yes" ~ 1))) %>% 
-  select(-c(EnvironmentSatisfaction, JobSatisfaction, PerformanceRating, EmployeeNumber,
-            WorkLifeBalance, JobInvolvement, RelationshipSatisfaction, EmployeeCount, Over18))
+df <- na.omit(df)
+# Remapping target values
+df$Result <- mapvalues(df$Result , from = c(-1, 1), to = c(0, 1), warn_missing = TRUE)
 
 ############
 # Data visualization
@@ -82,7 +59,7 @@ df <- df %>%
 # Train/test split
 ############
 set.seed(1)
-train <- caret::createDataPartition(df$Attrition, p = 0.80, list = FALSE)
+train <- caret::createDataPartition(df$Result, p = 0.70, list = FALSE)
 train.data <- df[train,]
 test.data <- df[-train,]
 
@@ -103,14 +80,14 @@ registerDoParallel(cl)
 ctrl <- trainControl(method = "cv",number = 10,
                      allowParallel = TRUE, 
                      verboseIter = FALSE)
-rf.cv <- train(Attrition ~ ., data = train.data,
+rf.cv <- train(Result ~ ., data = train.data,
                method = "rf",
                trControl = ctrl,                     
                tuneLenght = 5)
 stopCluster(cl)
 predict_rf <- predict(rf.cv, test.data)
 print("Random Forest")
-confusionMatrix(predict_rf, test.data$Attrition)
+confusionMatrix(predict_rf, test.data$Result)
 
 
 ############
