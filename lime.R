@@ -105,6 +105,6 @@ explanation_tuned <- explain(
   kernel_distance = "manhatten",
   kernel_width = 3,
   n_features = 10,
-  labels = "0",
+  labels = "-1",
 )
 plot_features(explanation_tuned)
