@@ -3,6 +3,8 @@ library(lime)
 library(plyr)
 library(randomForest)
 library(doParallel)
+library(rpart)
+library(iml)
 
 df <- read.csv("Customer_Churn.csv")
 
@@ -62,3 +64,20 @@ confusionMatrix(predict_rf, test.data$Churn)
 explainer <- lime(train.data, model = rf.cv)
 explanation <- explain(test.data[1:5, ], explainer, labels = "0", n_features = 10)
 plot_features(explanation)
+
+# Install and load the iml package
+if (!require(iml)) {
+  install.packages("iml")
+}
+
+library(iml)
+
+# Create a Predictor object
+predictor <- Predictor$new(rf.cv, data = train.data, y = "Churn")
+
+# Compute the Shapley values
+shapley <- Shapley$new(predictor, x.interest = test.data[1:5, ])
+shapley_values <- shapley$plot()
+
+# Print the Shapley values
+print(shapley_values)
