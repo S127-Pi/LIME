@@ -95,12 +95,12 @@ confusionMatrix(predict_rf, test.data$Churn)
 # Counterfactual
 ############
 predictor = Predictor$new(rf.cv, type = "prob")
-x_interest = test.data[2, ]
+x_interest = test.data[5, ]
 predictor$predict(x_interest) 
 
 wi_classif = WhatIfClassif$new(predictor, n_counterfactuals = 5)
 cfactuals = wi_classif$find_counterfactuals(
-  x_interest, desired_class = "Churn", desired_prob = c(0.5, 1)
+  x_interest, desired_class = "Non-Churn", desired_prob = c(0.7, 1)
 )
 cfactuals$data
 cfactuals$evaluate()
