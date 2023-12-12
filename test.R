@@ -104,7 +104,7 @@ cfactuals = wi_classif$find_counterfactuals(
 )
 cfactuals$data
 cfactuals$evaluate()
-cfactuals$plot_freq_of_feature_changes()
+cfactuals$plot_freq_of_feature_changes(subset_zero = TRUE)
 cfactuals$plot_parallel()
 
 ############
