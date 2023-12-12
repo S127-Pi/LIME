@@ -22,6 +22,7 @@ library(GGally)
 library(ggplot2)
 
 df <- read.csv("Customer_Churn.csv")
+aggregate(Age ~ Age.Group, data= df, FUN = mean)
 df <- df[, -which(names(df) == "Age")]
 df$Churn <- mapvalues(df$Churn , from = c(0, 1), to = c("Non-Churn", "Churn"), warn_missing = TRUE)
 df$Status <- mapvalues(df$Status , from = c(1, 2), to = c("active", "non-active"), warn_missing = TRUE)
