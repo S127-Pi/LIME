@@ -19,18 +19,30 @@ library(iml)
 library(iml)
 library(counterfactuals)
 library(GGally)
+library(ggplot2)
 
 df <- read.csv("Customer_Churn.csv")
-
+df$Churn <- mapvalues(df$Churn , from = c(0, 1), to = c("Non-Churn", "Churn"), warn_missing = TRUE)
+df$Status <- mapvalues(df$Status , from = c(1, 2), to = c("active", "non-active"), warn_missing = TRUE)
 ############
 # Data Pre-Processing
 ############
 df$Complains <- as.factor(df$Complains)
 df$Tariff.Plan <- as.factor(df$Tariff.Plan )
 df$Churn <- as.factor(df$Churn)
+df$Churn <- relevel(df$Churn, ref = "Non-Churn")
 df$Status <- as.factor(df$Status)
+df$Status <- relevel(df$Status, ref = "active")
 df$Age <- as.factor(df$Age)
 df$Charge..Amount <- as.factor(df$Charge..Amount)
+
+############
+# Data Visualization
+############
+ggplot(data = df, aes(x = Churn, fill = Churn)) +
+  geom_bar() +
+  stat_count()
+
 
 ############
 # Downsampling
@@ -86,20 +98,33 @@ predictor = Predictor$new(rf.cv, type = "prob")
 x_interest = test.data[2, ]
 predictor$predict(x_interest) 
 
-wi_classif = WhatIfClassif$new(predictor, n_counterfactuals = 5L)
+wi_classif = WhatIfClassif$new(predictor, n_counterfactuals = 5)
 cfactuals = wi_classif$find_counterfactuals(
-  x_interest, desired_class = "1", desired_prob = c(0.5, 1)
+  x_interest, desired_class = "Churn", desired_prob = c(0.5, 1)
 )
 cfactuals$data
 cfactuals$evaluate()
 cfactuals$plot_freq_of_feature_changes()
 cfactuals$plot_parallel()
+
 ############
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
-explanation <- explain(test.data[1:5, ], explainer, labels = "0", n_features = 10)
+explanation <- explain(test.data[1:5, !(names(test.data) %in% "Churn")], explainer, labels = "Churn", n_features = 5)
 plot_features(explanation)
+
+
+############
+# Tuned LIME
+############
+tuned_explanation <- explain(test.data[1:5, !(names(test.data) %in% "Churn")], explainer, labels = "Churn", 
+                             n_permutations = 500,
+                             dist_fun = "euclidean",
+                             kernel_width = 3,
+                             feature_select = "highest_weights",
+                             n_features = 5)
+plot_features(tuned_explanation)
 
 ############
 # Shapley Values
