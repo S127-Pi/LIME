@@ -37,6 +37,13 @@ df$Charge..Amount <- as.factor(df$Charge..Amount)
 set.seed(1)
 train <- caret::createDataPartition(df$Churn, p = 0.70, list = FALSE)
 train.data <- df[train,]
+
+#Down sampling training data
+train.data <- downSample(x = train.data[, -which(names(train.data) == "Churn")], 
+                                 y = train.data$Churn)
+colnames(train.data)[length(train.data)] <- "Churn"
+
+
 test.data <- df[-train,]
 
 ############
