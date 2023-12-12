@@ -1,3 +1,14 @@
+# Install and load the iml package
+if (!require(iml)) {
+  install.packages("iml")
+}
+if (!require(counterfactuals)) {
+  install.packages("counterfactuals")
+}
+if (!require(GGally)) {
+  install.packages("GGally")
+}
+library(iml)
 library(caret)
 library(lime)
 library(plyr)
@@ -5,6 +16,9 @@ library(randomForest)
 library(doParallel)
 library(rpart)
 library(iml)
+library(iml)
+library(counterfactuals)
+library(GGally)
 
 df <- read.csv("Customer_Churn.csv")
 
@@ -19,7 +33,7 @@ df$Age <- as.factor(df$Age)
 df$Charge..Amount <- as.factor(df$Charge..Amount)
 
 ############
-# Undersampling
+# Downsampling
 ############
 
 # df_down <- downSample(x = df[, -which(names(df) == "Churn")], 
@@ -66,19 +80,30 @@ print("Random Forest")
 confusionMatrix(predict_rf, test.data$Churn)
 
 ############
+# Counterfactual
+############
+predictor = Predictor$new(rf.cv, type = "prob")
+x_interest = test.data[2, ]
+predictor$predict(x_interest) 
+
+wi_classif = WhatIfClassif$new(predictor, n_counterfactuals = 5L)
+cfactuals = wi_classif$find_counterfactuals(
+  x_interest, desired_class = "1", desired_prob = c(0.5, 1)
+)
+cfactuals$data
+cfactuals$evaluate()
+cfactuals$plot_freq_of_feature_changes()
+cfactuals$plot_parallel()
+############
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
 explanation <- explain(test.data[1:5, ], explainer, labels = "0", n_features = 10)
 plot_features(explanation)
 
-# Install and load the iml package
-if (!require(iml)) {
-  install.packages("iml")
-}
-
-library(iml)
-
+############
+# Shapley Values
+############
 # Create a Predictor object
 predictor <- Predictor$new(rf.cv, data = train.data, y = "Churn")
 
