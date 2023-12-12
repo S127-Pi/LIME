@@ -22,6 +22,7 @@ library(GGally)
 library(ggplot2)
 
 df <- read.csv("Customer_Churn.csv")
+df <- df[, -which(names(df) == "Age")]
 df$Churn <- mapvalues(df$Churn , from = c(0, 1), to = c("Non-Churn", "Churn"), warn_missing = TRUE)
 df$Status <- mapvalues(df$Status , from = c(1, 2), to = c("active", "non-active"), warn_missing = TRUE)
 ############
@@ -33,7 +34,6 @@ df$Churn <- as.factor(df$Churn)
 df$Churn <- relevel(df$Churn, ref = "Non-Churn")
 df$Status <- as.factor(df$Status)
 df$Status <- relevel(df$Status, ref = "active")
-df$Age <- as.factor(df$Age)
 df$Charge..Amount <- as.factor(df$Charge..Amount)
 
 ############
