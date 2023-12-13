@@ -23,9 +23,21 @@ library(ggplot2)
 
 df <- read.csv("Customer_Churn.csv")
 aggregate(Age ~ Age.Group, data= df, FUN = mean)
+# Create a ggplot with the aggregated data
+ggplot(df, aes(x = Age.Group, y = Age)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "skyblue") +
+  labs(title = "",
+       x = "Age Group",
+       y = "Mean Age") +
+  theme_minimal()
 df <- df[, -which(names(df) == "Age")]
 df$Churn <- mapvalues(df$Churn , from = c(0, 1), to = c("Non-Churn", "Churn"), warn_missing = TRUE)
 df$Status <- mapvalues(df$Status , from = c(1, 2), to = c("active", "non-active"), warn_missing = TRUE)
+
+# Assuming df is your dataframe
+# Convert Age.Group to factor for better plotting
+df$Age.Group <- factor(df$Age.Group)
+
 ############
 # Data Pre-Processing
 ############
@@ -92,6 +104,13 @@ predict_rf <- predict(rf.cv, test.data)
 print("Random Forest")
 confusionMatrix(predict_rf, test.data$Churn)
 
+###
+# Comparing prediction labels to the actual 
+###
+comp <- cbind(test.data, predict_rf)
+comp <- comp[, c("Churn", "predict_rf")]
+row.names(comp) <- NULL
+
 ############
 # Counterfactual
 ############
@@ -112,16 +131,16 @@ cfactuals$plot_parallel()
 # LIME
 ############
 explainer <- lime(train.data, model = rf.cv)
-explanation <- explain(test.data[1:5, !(names(test.data) %in% "Churn")], explainer, labels = "Churn", n_features = 5)
+explanation <- explain(test.data[c(5,6,19,23), !(names(test.data) %in% "Churn")], explainer, n_labels = 1, n_features = 5)
 plot_features(explanation)
 
 
 ############
 # Tuned LIME
 ############
-tuned_explanation <- explain(test.data[1:5, !(names(test.data) %in% "Churn")], explainer, labels = "Churn", 
+tuned_explanation <- explain(test.data[c(5,6,19,23), !(names(test.data) %in% "Churn")], explainer, n_labels = 1, 
                              n_permutations = 500,
-                             dist_fun = "euclidean",
+                             dist_fun = "manhattan",
                              kernel_width = 3,
                              feature_select = "highest_weights",
                              n_features = 5)
@@ -134,7 +153,13 @@ plot_features(tuned_explanation)
 predictor <- Predictor$new(rf.cv, data = train.data, y = "Churn")
 
 # Compute the Shapley values
-shapley <- Shapley$new(predictor, x.interest = test.data[1:5, ])
+###
+# 5 -> TP
+# 6 -> TN
+# 19 -> FN
+# 23 -> FN
+###
+shapley <- Shapley$new(predictor, x.interest = test.data[c(5,6,19,23) , ])
 shapley_values <- shapley$plot()
 
 # Print the Shapley values
