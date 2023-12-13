@@ -102,7 +102,8 @@ rf.cv <- train(Churn ~ ., data = train.data,
 stopCluster(cl)
 predict_rf <- predict(rf.cv, test.data)
 print("Random Forest")
-confusionMatrix(predict_rf, test.data$Churn)
+cf <- confusionMatrix(predict_rf, test.data$Churn)
+
 
 ###
 # Comparing prediction labels to the actual 
